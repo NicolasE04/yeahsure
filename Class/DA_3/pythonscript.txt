@@ -1,0 +1,124 @@
+import argparse, json
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from pathlib import Path
+from scipy.io import arff
+from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold, cross_val_score
+from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler, FunctionTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import LinearSVC, SVC
+
+def load_arff_to_df(path: str, target: str | None):
+    data, meta = arff.loadarff(path)
+    df = pd.DataFrame(data)
+    # decode bytes (nominals)
+    for c in df.columns:
+        if df[c].dtype == object:
+            try: df[c] = df[c].str.decode("utf-8")
+            except Exception: pass
+    if target is None:
+        target = df.columns[-1]
+    if target not in df.columns:
+        raise SystemExit(f"Target '{target}' not found. Columns: {list(df.columns)}")
+    y = df[target].astype(str)
+    X = df.drop(columns=[target])
+    # bool -> int
+    for c in X.columns:
+        if X[c].dtype == bool:
+            X[c] = X[c].astype(int)
+    cat_cols = [c for c in X.columns if X[c].dtype == object]
+    num_cols = [c for c in X.columns if c not in cat_cols]
+    return X, y, cat_cols, num_cols
+
+def build_rf_pipeline(cat_cols, num_cols):
+    pre = ColumnTransformer([
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), cat_cols),
+        ("num", "passthrough", num_cols),
+    ], sparse_threshold=1.0)
+    return Pipeline([("pre", pre), ("rf", RandomForestClassifier(n_estimators=300, random_state=42, n_jobs=-1))])
+
+def build_svm_pipeline(cat_cols, num_cols, kernel: str):
+    if kernel.lower() == "linear":
+        pre = ColumnTransformer([
+            ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), cat_cols),
+            ("num", StandardScaler(with_mean=False), num_cols),
+        ], sparse_threshold=1.0)
+        return Pipeline([("pre", pre), ("svm", LinearSVC(C=1.0, random_state=42))])
+    elif kernel.lower() == "rbf":
+        pre = ColumnTransformer([
+            ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), cat_cols),
+            ("num", StandardScaler(with_mean=False), num_cols),
+        ], sparse_threshold=1.0)
+        to_dense = FunctionTransformer(lambda X: X.toarray(), accept_sparse=True)
+        return Pipeline([("pre", pre), ("dense", to_dense), ("svm", SVC(C=5.0, gamma="scale", kernel="rbf", random_state=42))])
+    else:
+        raise SystemExit("Use --svm_kernel linear or rbf")
+
+def plot_confusion(cm: np.ndarray, labels, title: str, save_path: Path):
+    fig = plt.figure(figsize=(6,5))
+    ax = fig.add_subplot(111)
+    ax.imshow(cm, interpolation='nearest')
+    ax.set_title(title)
+    ax.set_xticks(np.arange(len(labels))); ax.set_yticks(np.arange(len(labels)))
+    ax.set_xticklabels(labels, rotation=45, ha="right"); ax.set_yticklabels(labels)
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            ax.text(j, i, cm[i,j], ha="center", va="center")
+    ax.set_ylabel("True"); ax.set_xlabel("Predicted")
+    fig.tight_layout(); fig.savefig(save_path, dpi=200); plt.close(fig)
+
+def main():
+    ap = argparse.ArgumentParser(description="Train RF/SVM on ARFF and print Accuracy + Confusion Matrix")
+    ap.add_argument("--arff", required=True)
+    ap.add_argument("--target", default="class")
+    ap.add_argument("--model", choices=["rf","svm","both"], default="both")
+    ap.add_argument("--svm_kernel", choices=["linear","rbf"], default="linear")
+    ap.add_argument("--test_size", type=float, default=0.2)
+    ap.add_argument("--cv", type=int, default=0)
+    ap.add_argument("--outdir", default="outputs")
+    args = ap.parse_args()
+
+    X, y, cat_cols, num_cols = load_arff_to_df(args.arff, args.target)
+    labels_sorted = np.unique(y).tolist()
+    out_dir = Path(args.outdir); (out_dir/"plots").mkdir(parents=True, exist_ok=True)
+
+    sss = StratifiedShuffleSplit(n_splits=1, test_size=args.test_size, random_state=123)
+    (tr, te) = next(sss.split(X, y))
+    Xtr, Xte = X.iloc[tr], X.iloc[te]; ytr, yte = y.iloc[tr], y.iloc[te]
+
+    metrics = {"labels": labels_sorted, "target": args.target}
+
+    if args.model in ("rf","both"):
+        rf = build_rf_pipeline(cat_cols, num_cols)
+        rf.fit(Xtr, ytr); pr = rf.predict(Xte)
+        acc = float(accuracy_score(yte, pr)); cm = confusion_matrix(yte, pr, labels=labels_sorted)
+        print("\n=== Random Forest ==="); print("Accuracy:", f"{acc:.4f}"); print("Confusion Matrix:\n", cm)
+        metrics["rf"] = {"accuracy": acc, "cm": cm.tolist()}
+        plot_confusion(cm, labels_sorted, "RF — Holdout", out_dir/"plots"/"cm_rf_from_arff.png")
+        if args.cv and args.cv>1:
+            skf = StratifiedKFold(n_splits=args.cv, shuffle=True, random_state=42)
+            scores = cross_val_score(rf, X, y, cv=skf, scoring="accuracy", n_jobs=-1)
+            print("CV Accuracy (mean±std):", f"{scores.mean():.4f} ± {scores.std():.4f}")
+            metrics["rf"]["cv_mean"] = float(scores.mean()); metrics["rf"]["cv_std"] = float(scores.std())
+
+    if args.model in ("svm","both"):
+        svm = build_svm_pipeline(cat_cols, num_cols, args.svm_kernel)
+        svm.fit(Xtr, ytr); ps = svm.predict(Xte)
+        acc = float(accuracy_score(yte, ps)); cm = confusion_matrix(yte, ps, labels=labels_sorted)
+        print(f"\n=== SVM ({args.svm_kernel.upper()}) ==="); print("Accuracy:", f"{acc:.4f}"); print("Confusion Matrix:\n", cm)
+        metrics["svm"] = {"accuracy": acc, "kernel": args.svm_kernel, "cm": cm.tolist()}
+        plot_confusion(cm, labels_sorted, f"SVM ({args.svm_kernel}) — Holdout", out_dir/"plots"/"cm_svm_from_arff.png")
+        if args.cv and args.cv>1:
+            skf = StratifiedKFold(n_splits=args.cv, shuffle=True, random_state=42)
+            scores = cross_val_score(svm, X, y, cv=skf, scoring="accuracy", n_jobs=-1)
+            print("CV Accuracy (mean±std):", f"{scores.mean():.4f} ± {scores.std():.4f}")
+            metrics["svm"]["cv_mean"] = float(scores.mean()); metrics["svm"]["cv_std"] = float(scores.std())
+
+    with open(out_dir/"metrics_from_arff.json", "w") as f:
+        json.dump(metrics, f, indent=2)
+    print("\nSaved plots to:", out_dir/"plots"); print("Saved metrics to:", out_dir/"metrics_from_arff.json")
