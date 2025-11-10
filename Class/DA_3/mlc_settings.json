@@ -1,0 +1,247 @@
+{
+    "accelerometer_fs": "2 g",
+    "accelerometer_odr": "30 Hz",
+    "config_output_filename": "",
+    "datalogs": [
+        {
+            "filename": "waving03.csv",
+            "label": "waving"
+        },
+        {
+            "filename": "waving02.csv",
+            "label": "waving"
+        },
+        {
+            "filename": "waving01.csv",
+            "label": "waving"
+        },
+        {
+            "filename": "walking03.csv",
+            "label": "walking"
+        },
+        {
+            "filename": "walking02.csv",
+            "label": "walking"
+        },
+        {
+            "filename": "walking01.csv",
+            "label": "walking"
+        },
+        {
+            "filename": "roate_wrist03.csv",
+            "label": "wrist"
+        },
+        {
+            "filename": "roate_wrist02.csv",
+            "label": "wrist"
+        },
+        {
+            "filename": "roate_wrist01.csv",
+            "label": "wrist"
+        }
+    ],
+    "decision_tree_count": "1",
+    "dectrees": [
+        {
+            "filename": "ST_decision_tree_20251109_233050_028.txt",
+            "max_depth": 2047,
+            "metaclassifier": [
+                0,
+                0,
+                0,
+                0
+            ],
+            "min_samples_leaf": 1,
+            "results": [
+                {
+                    "label": "waving",
+                    "value": 0
+                },
+                {
+                    "label": "walking",
+                    "value": 4
+                },
+                {
+                    "label": "wrist",
+                    "value": 8
+                }
+            ],
+            "test_train_split": 1
+        }
+    ],
+    "features": [
+        {
+            "feature_name": "MEAN",
+            "input": "Acc_Y",
+            "signed": true
+        },
+        {
+            "feature_name": "PEAK_TO_PEAK",
+            "input": "Gyr_Y",
+            "signed": true
+        },
+        {
+            "feature_name": "MAXIMUM",
+            "input": "Acc_X",
+            "signed": true
+        },
+        {
+            "feature_name": "MINIMUM",
+            "input": "Gyr_Z",
+            "signed": true
+        },
+        {
+            "feature_name": "MINIMUM",
+            "input": "Acc_X",
+            "signed": true
+        },
+        {
+            "feature_name": "ENERGY",
+            "input": "Acc_Z",
+            "signed": true
+        },
+        {
+            "feature_name": "MEAN",
+            "input": "Acc_Z",
+            "signed": true
+        },
+        {
+            "feature_name": "MAXIMUM",
+            "input": "Acc_Y",
+            "signed": true
+        },
+        {
+            "feature_name": "PEAK_TO_PEAK",
+            "input": "Acc_Y",
+            "signed": true
+        },
+        {
+            "feature_name": "MAXIMUM",
+            "input": "Gyr_Z",
+            "signed": true
+        },
+        {
+            "feature_name": "MAXIMUM",
+            "input": "Acc_X_filter_1",
+            "signed": true
+        },
+        {
+            "feature_name": "PEAK_TO_PEAK",
+            "input": "Acc_Y_filter_1",
+            "signed": true
+        },
+        {
+            "feature_name": "PEAK_TO_PEAK",
+            "input": "Acc_X_filter_1",
+            "signed": true
+        },
+        {
+            "feature_name": "MINIMUM",
+            "input": "Acc_X_filter_1",
+            "signed": true
+        },
+        {
+            "feature_name": "MINIMUM",
+            "input": "Acc_Y_filter_1",
+            "signed": true
+        },
+        {
+            "feature_name": "MAXIMUM",
+            "input": "Acc_X_filter_1",
+            "signed": true
+        },
+        {
+            "feature_name": "PEAK_TO_PEAK",
+            "input": "Acc_Y_filter_1",
+            "signed": true
+        },
+        {
+            "feature_name": "PEAK_TO_PEAK",
+            "input": "Acc_X_filter_1",
+            "signed": true
+        },
+        {
+            "feature_name": "MINIMUM",
+            "input": "Acc_Y_filter_1",
+            "signed": true
+        },
+        {
+            "feature_name": "MINIMUM",
+            "input": "Acc_Y_filter_1",
+            "signed": true
+        },
+        {
+            "feature_name": "MAXIMUM",
+            "input": "Acc_Z_filter_1",
+            "signed": true
+        },
+        {
+            "feature_name": "PEAK_TO_PEAK",
+            "input": "Acc_Y_filter_1",
+            "signed": true
+        },
+        {
+            "feature_name": "PEAK_TO_PEAK",
+            "input": "Acc_X_filter_1",
+            "signed": true
+        },
+        {
+            "feature_name": "MINIMUM",
+            "input": "Acc_X_filter_1",
+            "signed": true
+        },
+        {
+            "feature_name": "MINIMUM",
+            "input": "Acc_Y_filter_1",
+            "signed": true
+        }
+    ],
+    "features_output_filename": "C:/Users/Nicol/Downloads/da_3/features.arff",
+    "filters": [
+        {
+            "a2": "-1.5626834445307423",
+            "a3": "0.6021883095956341",
+            "b1": "0.19890584520218285",
+            "b2": "0",
+            "b3": "-0.19890584520218285",
+            "filter_id": "filter_1",
+            "filter_type": "IIR2",
+            "input": "Acc_XYZ"
+        },
+        {
+            "a2": "-1.6483675639365487",
+            "a3": "0.7936897774286343",
+            "b1": "0.10315511128568296",
+            "b2": "0",
+            "b3": "-0.10315511128568296",
+            "filter_id": "filter_2",
+            "filter_type": "IIR2",
+            "input": "Gyr_XYZ"
+        },
+        {
+            "a2": "-1.590848579504814",
+            "a3": "0.914332674905004",
+            "b1": "0.04283366254749807",
+            "b2": "0",
+            "b3": "-0.04283366254749807",
+            "filter_id": "filter_3",
+            "filter_type": "IIR2",
+            "input": "Gyr_V"
+        }
+    ],
+    "gyroscope_fs": "125 dps",
+    "gyroscope_odr": "30 Hz",
+    "input_type": "accelerometer+gyroscope",
+    "json_format": {
+        "type": "mlc_settings",
+        "version": "1.0"
+    },
+    "max_dectrees": 4,
+    "max_results_per_dt": 16,
+    "mlc_odr": "30 Hz",
+    "name": "LSM6DSV16X",
+    "subgroups_per_dt": 4,
+    "thresh_accu_to_take_default": 0.05,
+    "thresh_n_percentage_default": 0.05,
+    "window_length": "88"
+}
